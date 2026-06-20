@@ -1,0 +1,16 @@
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.nav-link {
+    transition: all 0.2s;
+}
+.nav-link.active {
+    background-color: #991b1b;
+    color: white;
+}
+.panel {
+    animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+}
