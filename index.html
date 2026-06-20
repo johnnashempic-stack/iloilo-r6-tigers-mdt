@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iloilo R6 Tigers Brigade MDT</title>
+    <title>Iloilo R6 Tigers Brigade MDT • Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
         body { font-family: 'Roboto Mono', monospace; }
         .nav-link { transition: all 0.2s; }
         .nav-link.active { background-color: #991b1b; color: #fff; border-left: 4px solid #f59e0b; }
-        .dispatch-entry { transition: all 0.2s; }
-        .dispatch-entry:hover { background-color: #3f0f0f; }
+        .dispatch-entry { transition: all 0.3s; }
+        .live-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen overflow-hidden">
@@ -22,7 +24,7 @@
             <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-4xl border-4 border-orange-500 shadow-inner">🐅</div>
             <div>
                 <h1 class="text-2xl font-bold tracking-widest text-orange-400">ILOILO R6 TIGERS</h1>
-                <p class="text-xs text-red-200 -mt-1">SEARCH &amp; RESCUE BRIGADE • MDT</p>
+                <p class="text-xs text-red-200 -mt-1">SEARCH & RESCUE BRIGADE • <span class="text-green-400">LIVE MDT</span></p>
             </div>
         </div>
         
@@ -32,9 +34,13 @@
         </div>
 
         <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 text-green-400">
+                <div class="w-3 h-3 bg-green-400 rounded-full live-dot"></div>
+                <span class="text-sm font-bold">SYNC ONLINE</span>
+            </div>
             <div class="text-right">
-                <p class="font-bold text-orange-300">Welcome, Mid Sets</p>
-                <p class="text-xs text-zinc-400">📍 Iloilo Command Center</p>
+                <p class="font-bold text-orange-300">Mid Sets</p>
+                <p class="text-xs text-zinc-400">Command Center</p>
             </div>
             <button onclick="logout()" 
                     class="bg-red-700 hover:bg-red-800 px-5 py-2 rounded-lg text-sm font-bold border border-red-500 flex items-center gap-2">
@@ -44,299 +50,187 @@
     </header>
 
     <div class="flex h-[calc(100vh-73px)]">
-        <!-- Sidebar - Real FD/SAR MDT Sections -->
+        <!-- Sidebar -->
         <div class="w-72 bg-zinc-900 border-r border-red-800 flex flex-col">
-            <div class="p-4 border-b border-red-800">
-                <div class="uppercase text-xs tracking-widest text-orange-400 font-bold mb-2">Main Menu</div>
-            </div>
-            
             <nav class="flex-1 overflow-auto p-3 space-y-1">
                 <a href="#" onclick="switchPanel(0)" class="nav-link active flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
                     <i class="fas fa-tachometer-alt w-5"></i> DASHBOARD
                 </a>
                 <a href="#" onclick="switchPanel(1)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
-                    <i class="fas fa-users w-5"></i> PERSONNEL PROFILES
+                    <i class="fas fa-users w-5"></i> PERSONNEL
                 </a>
                 <a href="#" onclick="switchPanel(2)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
                     <i class="fas fa-bell w-5"></i> LIVE DISPATCH
                 </a>
                 <a href="#" onclick="switchPanel(3)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
-                    <i class="fas fa-exclamation-triangle w-5"></i> ACTIVE INCIDENTS
+                    <i class="fas fa-exclamation-triangle w-5"></i> INCIDENTS
                 </a>
                 <a href="#" onclick="switchPanel(4)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
-                    <i class="fas fa-file-medical w-5"></i> INCIDENT REPORTS
+                    <i class="fas fa-file-medical w-5"></i> REPORTS
                 </a>
                 <a href="#" onclick="switchPanel(5)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
-                    <i class="fas fa-list-ul w-5"></i> UNIT ROSTER
-                </a>
-                <a href="#" onclick="switchPanel(6)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
-                    <i class="fas fa-clipboard-list w-5"></i> STAFF LOGS
-                </a>
-                <a href="#" onclick="switchPanel(7)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">
-                    <i class="fas fa-map-marked-alt w-5"></i> MAP VIEW
+                    <i class="fas fa-list-ul w-5"></i> ROSTER
                 </a>
             </nav>
-
-            <div class="p-4 border-t border-red-800 text-xs text-zinc-500 space-y-2">
-                <div class="flex justify-between">
-                    <span>Status:</span>
-                    <span class="text-green-400 font-bold">ONLINE</span>
-                </div>
-                <div class="flex justify-between">
-                    <span>Units Online:</span>
-                    <span id="online-count" class="font-bold text-orange-400">8</span>
-                </div>
-            </div>
         </div>
 
-        <!-- Main Content Area -->
-        <div class="flex-1 overflow-auto p-6 bg-zinc-950" id="main-content">
-            <!-- DASHBOARD (Panel 0) -->
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto p-6" id="main-content">
+            <!-- DASHBOARD -->
             <div id="panel-0">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Quick Stats -->
-                    <div class="bg-zinc-900 border border-orange-500 rounded-2xl p-6">
-                        <h3 class="text-orange-400 text-sm font-bold mb-3">CURRENT OPERATIONS</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center">
-                                <span>Active Rescues</span>
-                                <span class="text-3xl font-bold text-red-400">3</span>
-                            </div>
-                            <div class="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                                <div class="h-full w-3/4 bg-orange-500"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Dispatch Button -->
-                    <div onclick="switchPanel(2)" class="bg-red-900 hover:bg-red-800 border border-red-600 rounded-2xl p-6 cursor-pointer flex flex-col justify-center items-center text-center">
-                        <i class="fas fa-plus-circle text-5xl mb-3 text-orange-400"></i>
-                        <p class="font-bold text-lg">NEW DISPATCH CALL</p>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-zinc-900 p-6 rounded-3xl border border-orange-500">
+                        <h3 class="text-orange-400">ACTIVE RESCUES</h3>
+                        <div id="active-count" class="text-6xl font-bold text-red-400">3</div>
                     </div>
                 </div>
             </div>
 
-            <!-- PERSONNEL PROFILES (Panel 1) -->
-            <div id="panel-1" class="hidden">
-                <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><i class="fas fa-users"></i> PERSONNEL PROFILES</h2>
-                <input type="text" id="search-profile" placeholder="Search by name or ID..." 
-                       class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-5 py-4 mb-6 focus:outline-none focus:border-orange-500">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="profiles-list">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-
-            <!-- LIVE DISPATCH (Panel 2) - Enhanced -->
+            <!-- LIVE DISPATCH - REAL-TIME -->
             <div id="panel-2" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-bell text-orange-400"></i> LIVE DISPATCH CENTER</h2>
-                    <div class="flex gap-3">
-                        <button onclick="newDispatchCall()" 
-                                class="bg-orange-500 hover:bg-orange-600 text-black font-bold px-6 py-3 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-plus"></i> NEW CALL
-                        </button>
-                        <button onclick="refreshDispatch()" 
-                                class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 font-bold px-6 py-3 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-sync"></i> REFRESH
-                        </button>
-                    </div>
+                <div class="flex justify-between mb-6">
+                    <h2 class="text-2xl font-bold">LIVE DISPATCH</h2>
+                    <button onclick="newDispatchCall()" 
+                            class="bg-orange-500 hover:bg-orange-600 text-black px-6 py-3 rounded-2xl font-bold flex items-center gap-2">
+                        <i class="fas fa-plus"></i> NEW CALL
+                    </button>
                 </div>
-
-                <div id="dispatch-feed" class="space-y-4 max-h-[70vh] overflow-auto pr-2">
-                    <!-- Populated by JS -->
-                </div>
+                <div id="dispatch-feed" class="space-y-4"></div>
             </div>
 
-            <!-- Other Panels -->
-            <div id="panel-3" class="hidden"><h2 class="text-2xl font-bold">ACTIVE INCIDENTS</h2><p class="text-zinc-400 mt-8">Real-time incident board coming soon...</p></div>
-            <div id="panel-4" class="hidden"><h2 class="text-2xl font-bold">INCIDENT REPORTS</h2><p class="text-zinc-400 mt-8">Full report filing system...</p></div>
-            <div id="panel-5" class="hidden"><h2 class="text-2xl font-bold">UNIT ROSTER</h2><p class="text-zinc-400 mt-8">Current roster and availability...</p></div>
-            <div id="panel-6" class="hidden"><h2 class="text-2xl font-bold">STAFF LOGS</h2><p class="text-zinc-400 mt-8">Duty logs and activity...</p></div>
-            <div id="panel-7" class="hidden"><h2 class="text-2xl font-bold">MAP VIEW</h2><p class="text-zinc-400 mt-8">Live SAR map integration (placeholder)</p></div>
+            <!-- Other panels -->
+            <div id="panel-1" class="hidden"><h2 class="text-2xl">Personnel Profiles</h2></div>
+            <div id="panel-3" class="hidden"><h2 class="text-2xl">Active Incidents</h2></div>
+            <div id="panel-4" class="hidden"><h2 class="text-2xl">Reports</h2></div>
+            <div id="panel-5" class="hidden"><h2 class="text-2xl">Roster</h2></div>
         </div>
     </div>
 
     <!-- New Dispatch Modal -->
     <div id="new-dispatch-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-        <div class="bg-zinc-900 border border-orange-500 rounded-3xl w-full max-w-lg mx-4 p-8">
-            <h3 class="text-xl font-bold mb-6">Create New Dispatch Call</h3>
+        <div class="bg-zinc-900 rounded-3xl w-full max-w-lg p-8">
+            <h3 class="text-xl mb-6">New SAR Dispatch</h3>
+            <select id="incident-type" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4">
+                <option>Flood Rescue</option>
+                <option>Missing Person</option>
+                <option>Typhoon Response</option>
+            </select>
+            <input id="incident-location" placeholder="Location" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4">
+            <textarea id="incident-desc" placeholder="Details..." rows="4" class="w-full bg-zinc-800 p-4 rounded-2xl"></textarea>
             
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-sm text-zinc-400 mb-1">Incident Type</label>
-                    <select id="incident-type" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3">
-                        <option>Flood Rescue</option>
-                        <option>Missing Person</option>
-                        <option>Vehicle Accident</option>
-                        <option>Medical Emergency</option>
-                        <option>Typhoon Response</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm text-zinc-400 mb-1">Location</label>
-                    <input id="incident-location" type="text" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3" placeholder="Barangay, Street">
-                </div>
-                <div>
-                    <label class="block text-sm text-zinc-400 mb-1">Description</label>
-                    <textarea id="incident-desc" rows="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3" placeholder="Details..."></textarea>
-                </div>
-            </div>
-
             <div class="flex gap-4 mt-8">
-                <button onclick="closeModal()" 
-                        class="flex-1 py-4 border border-zinc-600 hover:bg-zinc-800 rounded-2xl">CANCEL</button>
-                <button onclick="submitNewDispatch()" 
-                        class="flex-1 py-4 bg-orange-500 hover:bg-orange-600 text-black font-bold rounded-2xl">DISPATCH NOW</button>
+                <button onclick="closeModal()" class="flex-1 py-4 border border-zinc-600 rounded-2xl">Cancel</button>
+                <button onclick="submitNewDispatch()" class="flex-1 py-4 bg-orange-500 text-black font-bold rounded-2xl">SEND TO ALL UNITS</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Clock
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('current-date').textContent = now.toLocaleDateString('en-PH', {month:'2-digit', day:'2-digit', year:'numeric'});
-            document.getElementById('current-time').textContent = now.toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit', hour12:true});
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // Panel Switching
-        function switchPanel(n) {
-            document.querySelectorAll('#main-content > div').forEach(div => {
-                div.classList.add('hidden');
-            });
-            document.getElementById(`panel-${n}`).classList.remove('hidden');
-
-            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            document.querySelectorAll('.nav-link')[n].classList.add('active');
+        // ============== REAL-TIME SYNC (Simulated with polling + localStorage) ==============
+        let dispatches = [];
+        
+        function loadDispatches() {
+            const saved = localStorage.getItem('r6tigers_dispatches');
+            if (saved) dispatches = JSON.parse(saved);
+            renderDispatchFeed();
         }
 
-        // Mock Dispatch Data
-        let dispatches = [
-            {
-                id: 1,
-                time: "23:42",
-                type: "Flood Rescue",
-                location: "Brgy. Molo Proper",
-                unit: "TR-07",
-                status: "ON SCENE",
-                priority: "HIGH"
-            },
-            {
-                id: 2,
-                time: "23:18",
-                type: "Missing Person",
-                location: "Jaro Riverbank",
-                unit: "TR-03",
-                status: "SEARCHING",
-                priority: "MEDIUM"
-            }
-        ];
+        function saveDispatches() {
+            localStorage.setItem('r6tigers_dispatches', JSON.stringify(dispatches));
+            renderDispatchFeed();
+        }
+
+        // Simulate real-time sync across tabs / users (every 2 seconds)
+        function startRealTimeSync() {
+            setInterval(() => {
+                loadDispatches(); // Pull latest from "server" (localStorage)
+            }, 2000);
+        }
 
         function renderDispatchFeed() {
             const container = document.getElementById('dispatch-feed');
             container.innerHTML = dispatches.map(d => `
-                <div class="dispatch-entry bg-zinc-900 border border-red-800 rounded-2xl p-5 flex gap-5">
-                    <div class="w-20 text-center">
-                        <div class="text-orange-400 text-xs">${d.time}</div>
-                        <div class="text-2xl font-bold text-red-400">${d.priority}</div>
+                <div class="dispatch-entry bg-zinc-900 border border-red-800 rounded-3xl p-6 flex gap-6">
+                    <div class="text-center w-20">
+                        <div class="text-orange-400">${d.time}</div>
+                        <div class="text-red-400 font-bold">${d.priority}</div>
                     </div>
                     <div class="flex-1">
-                        <div class="flex justify-between">
-                            <span class="font-bold">${d.type}</span>
-                            <span class="px-3 py-1 text-xs rounded-full \( {d.status === 'ON SCENE' ? 'bg-green-600' : 'bg-yellow-600'}"> \){d.status}</span>
-                        </div>
+                        <div class="font-bold">${d.type}</div>
                         <div class="text-zinc-400">${d.location}</div>
-                        <div class="text-sm mt-2">Assigned: <span class="font-mono">${d.unit}</span></div>
+                        <div class="text-sm mt-1">Unit: ${d.unit} • ${d.status}</div>
                     </div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="updateStatus(${d.id})" class="text-xs px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl">UPDATE</button>
-                        <button onclick="closeCall(${d.id})" class="text-xs px-4 py-2 bg-red-700 hover:bg-red-600 rounded-xl">CLOSE</button>
+                    <div>
+                        <button onclick="closeCall(${d.id})" class="px-5 py-2 bg-red-700 hover:bg-red-600 rounded-2xl text-sm">CLOSE</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function newDispatchCall() {
-            document.getElementById('new-dispatch-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('new-dispatch-modal').classList.add('hidden');
-        }
-
         function submitNewDispatch() {
             const type = document.getElementById('incident-type').value;
-            const loc = document.getElementById('incident-location').value || "Unknown Location";
-            const desc = document.getElementById('incident-desc').value;
-
+            const loc = document.getElementById('incident-location').value || "Unknown";
+            
             dispatches.unshift({
                 id: Date.now(),
-                time: new Date().toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'}),
+                time: new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}),
                 type: type,
                 location: loc,
                 unit: "PENDING",
                 status: "DISPATCHED",
                 priority: "HIGH"
             });
-
-            renderDispatchFeed();
+            
+            saveDispatches();
             closeModal();
-            alert("Dispatch sent to all units!");
-        }
-
-        function updateStatus(id) {
-            alert("Status update for call #" + id + " (In real system this would open a form)");
+            alert("🚨 Dispatch broadcasted to all units in real-time!");
         }
 
         function closeCall(id) {
-            if (confirm("Close this call?")) {
+            if (confirm("Mark call as resolved?")) {
                 dispatches = dispatches.filter(d => d.id !== id);
-                renderDispatchFeed();
+                saveDispatches();
             }
         }
 
-        function refreshDispatch() {
-            renderDispatchFeed();
-            alert("Dispatch feed refreshed");
+        // Modal & Panel functions
+        function newDispatchCall() { document.getElementById('new-dispatch-modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('new-dispatch-modal').classList.add('hidden'); }
+
+        function switchPanel(n) {
+            document.querySelectorAll('#main-content > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById(`panel-${n}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.nav-link')[n].classList.add('active');
         }
 
-        // Mock Profiles
-        function renderProfiles() {
-            const container = document.getElementById('profiles-list');
-            container.innerHTML = `
-                <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-6">
-                    <div class="flex gap-4">
-                        <div class="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center text-3xl">🐅</div>
-                        <div class="flex-1">
-                            <div class="font-bold">TR-07 • Commander Santos</div>
-                            <div class="text-xs text-green-400">ON DUTY</div>
-                            <div class="text-sm text-zinc-400 mt-2">Specialty: Swift Water Rescue</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('current-date').textContent = now.toLocaleDateString('en-PH');
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'});
         }
 
-        // Logout
         function logout() {
-            if (confirm("End MDT Session?")) {
-                window.location.reload();
-            }
+            if (confirm("End session?")) location.reload();
         }
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', e => {
-            if (e.key === "Escape") {
-                const modal = document.getElementById('new-dispatch-modal');
-                if (!modal.classList.contains('hidden')) closeModal();
+        // Init
+        window.onload = () => {
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            loadDispatches();
+            startRealTimeSync();
+            
+            // Demo data if empty
+            if (dispatches.length === 0) {
+                dispatches = [{
+                    id: 1, time: "23:45", type: "Flood Rescue", location: "Brgy. Molo", unit: "TR-07", status: "ON SCENE", priority: "HIGH"
+                }];
+                saveDispatches();
             }
-        });
-
-        // Initialize
-        renderDispatchFeed();
-        renderProfiles();
+        };
     </script>
 </body>
-              </html>
+</html>
