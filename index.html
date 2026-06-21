@@ -54,28 +54,28 @@
 
         <!-- Main Content -->
         <div class="flex-1 p-6 overflow-auto" id="main-content">
-            <!-- Dashboard -->
+            
+            <!-- DASHBOARD -->
             <div id="panel-0" class="panel active">
                 <div class="text-center py-20">
                     <h1 class="text-5xl font-bold text-orange-400">Welcome to MDT</h1>
-                    <p class="text-xl text-zinc-400 mt-4">All systems ready</p>
+                    <p class="text-xl text-zinc-400 mt-4">Iloilo R6 Tigers Brigade</p>
                 </div>
             </div>
 
-            <!-- Personnel -->
+            <!-- PERSONNEL -->
             <div id="panel-1" class="panel hidden">
                 <h2 class="text-2xl font-bold mb-6">Personnel Management</h2>
                 <div class="bg-zinc-900 p-6 rounded-3xl mb-6">
                     <div class="flex gap-3">
-                        <input id="new-personnel-name" placeholder="Enter name (e.g. TR-07 Santos)" 
-                               class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4">
+                        <input id="new-personnel-name" placeholder="Enter name (e.g. TR-07 Santos)" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4">
                         <button onclick="addPersonnel()" class="bg-orange-500 hover:bg-orange-600 text-black font-bold px-8 rounded-2xl">ADD</button>
                     </div>
                 </div>
                 <div id="personnel-list" class="space-y-3"></div>
             </div>
 
-            <!-- Live Dispatch -->
+            <!-- LIVE DISPATCH -->
             <div id="panel-2" class="panel hidden">
                 <div class="flex justify-between mb-6">
                     <h2 class="text-2xl font-bold">Live Dispatch</h2>
@@ -84,7 +84,7 @@
                 <div id="dispatch-feed" class="space-y-4"></div>
             </div>
 
-            <!-- Unit Status -->
+            <!-- UNIT STATUS -->
             <div id="panel-3" class="panel hidden">
                 <h2 class="text-2xl font-bold mb-6">Unit Status Tracking</h2>
                 <div id="units-list" class="space-y-4"></div>
@@ -95,14 +95,14 @@
     <!-- New Dispatch Modal -->
     <div id="new-dispatch-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div class="bg-zinc-900 w-full max-w-lg mx-4 p-8 rounded-3xl">
-            <h3 class="text-xl font-bold mb-6">New SAR Dispatch</h3>
+            <h3 class="text-xl font-bold mb-6">New SAR Dispatch Call</h3>
             <select id="incident-type" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4">
                 <option>Flood Rescue</option>
                 <option>Missing Person</option>
                 <option>Typhoon Response</option>
                 <option>Medical Evacuation</option>
             </select>
-            <input id="incident-location" placeholder="Location (Barangay)" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4">
+            <input id="incident-location" placeholder="Location" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4">
             <textarea id="incident-desc" placeholder="Details..." rows="3" class="w-full bg-zinc-800 p-4 rounded-2xl"></textarea>
             <div class="flex gap-4 mt-8">
                 <button onclick="closeModal()" class="flex-1 py-4 border border-zinc-600 rounded-2xl">Cancel</button>
@@ -112,6 +112,7 @@
     </div>
 
     <script>
+        // Config
         const BIN_ID = "6a36bc57f5f4af5e2914e1a3";
         const MASTER_KEY = "$2a$10$pedxS/u0iYwkNSqCta30R.iC6uYafEmeMR9br.X6X6e9MKPBNdrru";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -182,20 +183,20 @@
         function renderPersonnel() {
             const c = document.getElementById('personnel-list');
             c.innerHTML = personnel.map(p => `
-                <div class="bg-zinc-900 p-6 rounded-3xl flex justify-between items-center">
+                <div class="bg-zinc-900 p-6 rounded-3xl flex justify-between">
                     <span class="font-bold">${p.name}</span>
-                    <button onclick="removePersonnel('${p.id}')" class="text-red-400 hover:text-red-500">Remove</button>
+                    <button onclick="removePersonnel('${p.id}')" class="text-red-400">Remove</button>
                 </div>
-            `).join('') || '<p class="text-zinc-400">No personnel yet. Add some above.</p>';
+            `).join('') || '<p class="text-zinc-400">No personnel yet</p>';
         }
 
         function renderUnits() {
             const c = document.getElementById('units-list');
             c.innerHTML = units.map(u => `
                 <div class="bg-zinc-900 p-6 rounded-3xl">
-                    <div class="flex justify-between items-center">
-                        <div><strong>${u.id}</strong> - ${u.name}</div>
-                        <span class="px-4 py-1 rounded-full \( {u.status==='standby' ? 'bg-green-600' : 'bg-red-600'}"> \){u.status.toUpperCase()}</span>
+                    <div class="flex justify-between">
+                        <strong>${u.id} - ${u.name}</strong>
+                        <span class="px-4 py-1 rounded-full \( {u.status==='standby'?'bg-green-600':'bg-red-600'}"> \){u.status}</span>
                     </div>
                     <div class="grid grid-cols-2 gap-3 mt-4">
                         <button onclick="updateUnit('${u.id}','standby')" class="py-3 bg-green-900 hover:bg-green-800 rounded-2xl text-sm">STANDBY</button>
@@ -207,10 +208,8 @@
 
         async function updateUnit(id, status) {
             const unit = units.find(u => u.id === id);
-            if (unit) {
-                unit.status = status;
-                await saveData();
-            }
+            if (unit) unit.status = status;
+            await saveData();
         }
 
         async function addPersonnel() {
@@ -239,7 +238,7 @@
         }
 
         function removePersonnel(id) {
-            if (confirm("Remove this personnel?")) {
+            if (confirm("Remove?")) {
                 personnel = personnel.filter(p => p.id !== id);
                 saveData();
             }
@@ -250,7 +249,9 @@
 
         function switchPanel(n) {
             document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
-            document.getElementById(`panel-${n}`).classList.remove('hidden');
+            const panel = document.getElementById(`panel-${n}`);
+            if (panel) panel.classList.remove('hidden');
+
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             document.querySelectorAll('.nav-link')[n].classList.add('active');
         }
@@ -274,7 +275,7 @@
             setInterval(fetchData, 2000);
         };
 
-        // Make functions global
+        // Global functions
         window.switchPanel = switchPanel;
         window.addPersonnel = addPersonnel;
         window.newDispatchCall = newDispatchCall;
