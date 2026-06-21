@@ -108,8 +108,7 @@
                 <option>Fire</option>
                 <option>Drowning</option>
             </select>
-            <input id="incident-location" placeholder="Location (Barangay / Area)" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4 text-white">
-            <input id="incident-location" placeholder="BOLOS (BE ON A LOOKOUT)" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4 text-white">
+            <input id="incident-location" placeholder="Location (e.g. Benedicto, Jaro, Iloilo)" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4 text-white">
             <textarea id="incident-desc" placeholder="Details / Notes..." rows="3" class="w-full bg-zinc-800 p-4 rounded-2xl text-white"></textarea>
             
             <div class="flex gap-4 mt-8">
@@ -188,12 +187,15 @@
                 <div class="dispatch-entry bg-zinc-900 border border-red-800 rounded-3xl p-6 flex gap-6">
                     <div class="text-center w-24">
                         <div class="text-orange-400">${d.time}</div>
-                        <div class="text-red-400 font-bold">${d.priority}</div>
+                        <div class="text-red-400 font-bold">${d.priority || 'HIGH'}</div>
                     </div>
                     <div class="flex-1">
                         <div class="font-bold">${d.type}</div>
                         <div class="text-zinc-400">${d.location}</div>
-                        <div class="text-sm mt-1">Unit: \( {d.unit} • <span class="text-green-400"> \){d.status}</span></div>
+                        <div class="text-sm mt-2 text-orange-300">
+                            Unit: <span class="font-mono">${d.unit || 'FD-UNIT'}</span> • 
+                            <span class="text-green-400">${d.status || 'ON-GOING'}</span>
+                        </div>
                     </div>
                     <button onclick="closeCall('${d.id}')" class="self-start px-6 py-3 bg-red-700 hover:bg-red-600 rounded-2xl text-sm">CLOSE</button>
                 </div>
@@ -229,14 +231,14 @@
 
         async function submitNewDispatch() {
             const type = document.getElementById('incident-type').value;
-            const loc = document.getElementById('incident-location').value || "Unknown Location";
+            const loc = document.getElementById('incident-location').value.trim() || "Unknown Location";
 
             dispatches.unshift({
                 id: Date.now().toString(),
                 time: new Date().toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'}),
                 type: type,
                 location: loc,
-                unit: "RESPONDING",
+                unit: "FD-UNIT",
                 status: "ON-GOING",
                 priority: "HIGH"
             });
@@ -253,8 +255,13 @@
             }
         }
 
-        function newDispatchCall() { document.getElementById('new-dispatch-modal').classList.remove('hidden'); }
-        function closeModal() { document.getElementById('new-dispatch-modal').classList.add('hidden'); }
+        function newDispatchCall() { 
+            document.getElementById('new-dispatch-modal').classList.remove('hidden'); 
+        }
+        
+        function closeModal() { 
+            document.getElementById('new-dispatch-modal').classList.add('hidden'); 
+        }
 
         function initMap() {
             if (map) return;
@@ -282,13 +289,13 @@
             if (confirm("End MDT session?")) location.reload();
         }
 
-        // Initialize everything
+        // Initialize
         window.onload = () => {
             updateClock();
             setInterval(updateClock, 1000);
             initAudio();
             fetchData();
-            setInterval(fetchData, 1800); // Fast sync
+            setInterval(fetchData, 1800);
         };
     </script>
 </body>
