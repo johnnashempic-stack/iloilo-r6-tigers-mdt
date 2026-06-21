@@ -60,7 +60,7 @@
             <div id="panel-0">
                 <div class="text-center py-20">
                     <h1 class="text-5xl font-bold text-orange-400 mb-4">Welcome to MDT</h1>
-                    <p class="text-xl text-zinc-400">No active calls • All units standby</p>
+                    <p class="text-xl text-zinc-400">Wait For Calls • All units Standby</p>
                 </div>
             </div>
 
@@ -103,9 +103,10 @@
             <select id="incident-type" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4 text-white">
                 <option>Flood Rescue</option>
                 <option>Missing Person</option>
-                <option>Typhoon Response</option>
-                <option>Medical Evacuation</option>
-                <option>Vehicle Rescue</option>
+                <option>Vehicular accident</option>
+                <option>Residents Evacuation</option>
+                <option>Fire</option>
+                <option>Drowning</option>
             </select>
             <input id="incident-location" placeholder="Location (Barangay / Area)" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4 text-white">
             <textarea id="incident-desc" placeholder="Details / Notes..." rows="3" class="w-full bg-zinc-800 p-4 rounded-2xl text-white"></textarea>
@@ -234,8 +235,8 @@
                 time: new Date().toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'}),
                 type: type,
                 location: loc,
-                unit: "PENDING",
-                status: "DISPATCHED",
+                unit: "RESPONDING",
+                status: "ON-GOING",
                 priority: "HIGH"
             });
 
@@ -258,7 +259,6 @@
             if (map) return;
             map = L.map('map').setView([10.7202, 122.5621], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            L.marker([10.7202, 122.5621]).addTo(map).bindPopup('Iloilo Command Center').openPopup();
         }
 
         function switchPanel(n) {
