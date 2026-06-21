@@ -7,8 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
         body { font-family: 'Roboto Mono', monospace; }
@@ -37,7 +35,7 @@
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2 text-green-400">
                 <div class="w-3 h-3 bg-green-400 rounded-full live-dot"></div>
-                <span id="sync-status" class="text-sm font-bold">SYNCING...</span>
+                <span id="sync-status" class="text-sm font-bold">LIVE SYNC</span>
             </div>
             <button onclick="logout()" class="bg-red-700 hover:bg-red-800 px-5 py-2 rounded-lg font-bold">LOGOUT</button>
         </div>
@@ -51,7 +49,6 @@
                 <a href="#" onclick="switchPanel(1)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">👥 PERSONNEL</a>
                 <a href="#" onclick="switchPanel(2)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">🚨 LIVE DISPATCH</a>
                 <a href="#" onclick="switchPanel(3)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">🚑 UNIT STATUS</a>
-                <a href="#" onclick="switchPanel(4)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">🗺️ MAP</a>
             </nav>
         </div>
 
@@ -61,17 +58,18 @@
             <div id="panel-0" class="panel active">
                 <div class="text-center py-20">
                     <h1 class="text-5xl font-bold text-orange-400">Welcome to MDT</h1>
-                    <p class="text-xl text-zinc-400 mt-4">Iloilo R6 Tigers Brigade</p>
+                    <p class="text-xl text-zinc-400 mt-4">All systems ready</p>
                 </div>
             </div>
 
             <!-- Personnel -->
             <div id="panel-1" class="panel hidden">
-                <h2 class="text-2xl font-bold mb-6">Personnel</h2>
+                <h2 class="text-2xl font-bold mb-6">Personnel Management</h2>
                 <div class="bg-zinc-900 p-6 rounded-3xl mb-6">
                     <div class="flex gap-3">
-                        <input id="new-personnel-name" placeholder="Name (e.g. TR-07 Santos)" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4">
-                        <button onclick="addPersonnel()" class="bg-orange-500 text-black font-bold px-8 rounded-2xl">ADD</button>
+                        <input id="new-personnel-name" placeholder="Enter name (e.g. TR-07 Santos)" 
+                               class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4">
+                        <button onclick="addPersonnel()" class="bg-orange-500 hover:bg-orange-600 text-black font-bold px-8 rounded-2xl">ADD</button>
                     </div>
                 </div>
                 <div id="personnel-list" class="space-y-3"></div>
@@ -81,7 +79,7 @@
             <div id="panel-2" class="panel hidden">
                 <div class="flex justify-between mb-6">
                     <h2 class="text-2xl font-bold">Live Dispatch</h2>
-                    <button onclick="newDispatchCall()" class="bg-orange-500 text-black px-6 py-3 rounded-2xl font-bold">+ NEW CALL</button>
+                    <button onclick="newDispatchCall()" class="bg-orange-500 hover:bg-orange-600 text-black px-6 py-3 rounded-2xl font-bold">+ NEW CALL</button>
                 </div>
                 <div id="dispatch-feed" class="space-y-4"></div>
             </div>
@@ -90,12 +88,6 @@
             <div id="panel-3" class="panel hidden">
                 <h2 class="text-2xl font-bold mb-6">Unit Status Tracking</h2>
                 <div id="units-list" class="space-y-4"></div>
-            </div>
-
-            <!-- Map -->
-            <div id="panel-4" class="panel hidden">
-                <h2 class="text-2xl font-bold mb-6">Operations Map</h2>
-                <div id="map" class="rounded-3xl overflow-hidden border border-orange-500"></div>
             </div>
         </div>
     </div>
@@ -110,7 +102,7 @@
                 <option>Typhoon Response</option>
                 <option>Medical Evacuation</option>
             </select>
-            <input id="incident-location" placeholder="Location" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4">
+            <input id="incident-location" placeholder="Location (Barangay)" class="w-full bg-zinc-800 p-4 rounded-2xl mb-4">
             <textarea id="incident-desc" placeholder="Details..." rows="3" class="w-full bg-zinc-800 p-4 rounded-2xl"></textarea>
             <div class="flex gap-4 mt-8">
                 <button onclick="closeModal()" class="flex-1 py-4 border border-zinc-600 rounded-2xl">Cancel</button>
@@ -120,7 +112,6 @@
     </div>
 
     <script>
-        // === CONFIG ===
         const BIN_ID = "6a36bc57f5f4af5e2914e1a3";
         const MASTER_KEY = "$2a$10$pedxS/u0iYwkNSqCta30R.iC6uYafEmeMR9br.X6X6e9MKPBNdrru";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -130,7 +121,7 @@
             {id:"TR-07", name:"Tiger 7", status:"standby", location:"HQ"}
         ];
 
-        let audioContext, map;
+        let audioContext;
 
         function initAudio() { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
 
@@ -180,35 +171,35 @@
         function renderDispatch() {
             const c = document.getElementById('dispatch-feed');
             c.innerHTML = dispatches.length ? dispatches.map(d => `
-                <div class="bg-zinc-900 border border-red-800 rounded-3xl p-6">
+                <div class="bg-zinc-900 border border-red-800 rounded-3xl p-6 mb-4">
                     <div class="font-bold">${d.type}</div>
                     <div class="text-zinc-400">${d.location}</div>
-                    <button onclick="closeCall('${d.id}')" class="mt-4 px-6 py-2 bg-red-700 hover:bg-red-600 rounded-xl">CLOSE</button>
+                    <button onclick="closeCall('${d.id}')" class="mt-4 px-6 py-2 bg-red-700 hover:bg-red-600 rounded-xl">CLOSE CALL</button>
                 </div>
-            `).join('') : `<p class="text-center text-zinc-400 py-12">No active calls</p>`;
+            `).join('') : `<p class="text-center text-zinc-400 py-12">No active calls. All units standby.</p>`;
         }
 
         function renderPersonnel() {
             const c = document.getElementById('personnel-list');
             c.innerHTML = personnel.map(p => `
-                <div class="bg-zinc-900 p-6 rounded-3xl flex justify-between">
+                <div class="bg-zinc-900 p-6 rounded-3xl flex justify-between items-center">
                     <span class="font-bold">${p.name}</span>
-                    <button onclick="removePersonnel('${p.id}')" class="text-red-400">Remove</button>
+                    <button onclick="removePersonnel('${p.id}')" class="text-red-400 hover:text-red-500">Remove</button>
                 </div>
-            `).join('') || '<p class="text-zinc-400">No personnel yet</p>';
+            `).join('') || '<p class="text-zinc-400">No personnel yet. Add some above.</p>';
         }
 
         function renderUnits() {
             const c = document.getElementById('units-list');
             c.innerHTML = units.map(u => `
                 <div class="bg-zinc-900 p-6 rounded-3xl">
-                    <div class="flex justify-between">
-                        <strong>${u.id} - ${u.name}</strong>
-                        <span class="px-4 py-1 rounded-full \( {u.status==='standby'?'bg-green-600':'bg-red-600'}"> \){u.status}</span>
+                    <div class="flex justify-between items-center">
+                        <div><strong>${u.id}</strong> - ${u.name}</div>
+                        <span class="px-4 py-1 rounded-full \( {u.status==='standby' ? 'bg-green-600' : 'bg-red-600'}"> \){u.status.toUpperCase()}</span>
                     </div>
                     <div class="grid grid-cols-2 gap-3 mt-4">
-                        <button onclick="updateUnit('${u.id}','standby')" class="py-3 bg-green-900 rounded-2xl text-sm">STANDBY</button>
-                        <button onclick="updateUnit('${u.id}','onscene')" class="py-3 bg-red-900 rounded-2xl text-sm">ON SCENE</button>
+                        <button onclick="updateUnit('${u.id}','standby')" class="py-3 bg-green-900 hover:bg-green-800 rounded-2xl text-sm">STANDBY</button>
+                        <button onclick="updateUnit('${u.id}','onscene')" class="py-3 bg-red-900 hover:bg-red-800 rounded-2xl text-sm">ON SCENE</button>
                     </div>
                 </div>
             `).join('');
@@ -216,14 +207,16 @@
 
         async function updateUnit(id, status) {
             const unit = units.find(u => u.id === id);
-            if (unit) unit.status = status;
-            await saveData();
+            if (unit) {
+                unit.status = status;
+                await saveData();
+            }
         }
 
         async function addPersonnel() {
             const name = document.getElementById('new-personnel-name').value.trim();
             if (name) {
-                personnel.push({id: Date.now().toString(), name});
+                personnel.unshift({id: Date.now().toString(), name});
                 await saveData();
                 document.getElementById('new-personnel-name').value = '';
             }
@@ -231,7 +224,7 @@
 
         async function submitNewDispatch() {
             const type = document.getElementById('incident-type').value;
-            const loc = document.getElementById('incident-location').value || "Unknown";
+            const loc = document.getElementById('incident-location').value || "Unknown Location";
             dispatches.unshift({id: Date.now().toString(), type, location: loc});
             await saveData();
             playDispatchAlarm();
@@ -239,14 +232,14 @@
         }
 
         function closeCall(id) {
-            if (confirm("Close call?")) {
+            if (confirm("Close this call?")) {
                 dispatches = dispatches.filter(d => d.id !== id);
                 saveData();
             }
         }
 
         function removePersonnel(id) {
-            if (confirm("Remove?")) {
+            if (confirm("Remove this personnel?")) {
                 personnel = personnel.filter(p => p.id !== id);
                 saveData();
             }
@@ -268,16 +261,20 @@
             document.getElementById('current-time').textContent = now.toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'});
         }
 
-        function logout() { if(confirm("Logout?")) location.reload(); }
+        function logout() {
+            if (confirm("End MDT session?")) location.reload();
+        }
 
+        // Initialize
         window.onload = () => {
             updateClock();
             setInterval(updateClock, 1000);
+            initAudio();
             fetchData();
             setInterval(fetchData, 2000);
         };
 
-        // Global functions
+        // Make functions global
         window.switchPanel = switchPanel;
         window.addPersonnel = addPersonnel;
         window.newDispatchCall = newDispatchCall;
@@ -289,4 +286,4 @@
         window.logout = logout;
     </script>
 </body>
-                </html>
+</html>
