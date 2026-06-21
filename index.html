@@ -7,9 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
@@ -68,7 +66,6 @@
             <!-- PERSONNEL -->
             <div id="panel-1" class="hidden">
                 <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><i class="fas fa-users"></i> PERSONNEL</h2>
-                
                 <div class="bg-zinc-900 p-6 rounded-3xl mb-6">
                     <div class="flex gap-3">
                         <input id="new-personnel-name" placeholder="Enter name (e.g. TR-07 Santos)" 
@@ -77,7 +74,6 @@
                                 class="bg-orange-500 hover:bg-orange-600 text-black font-bold px-8 rounded-2xl">ADD</button>
                     </div>
                 </div>
-                
                 <div id="personnel-list" class="space-y-3"></div>
             </div>
 
@@ -100,6 +96,12 @@
             </div>
         </div>
     </div>
+
+    <!-- Dispatch Alarm Audio -->
+    <audio id="dispatch-alarm" preload="auto">
+        <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
+        <!-- Fallback siren tone using Web Audio if needed -->
+    </audio>
 
     <!-- New Dispatch Modal -->
     <div id="new-dispatch-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
@@ -131,11 +133,11 @@
         let dispatches = [];
         let personnel = [];
 
+        const alarmAudio = document.getElementById('dispatch-alarm');
+
         async function fetchData() {
             try {
-                const res = await axios.get(API_URL, {
-                    headers: { "X-Master-Key": MASTER_KEY }
-                });
+                const res = await axios.get(API_URL, { headers: { "X-Master-Key": MASTER_KEY } });
                 const record = res.data.record || {};
                 dispatches = record.dispatches || [];
                 personnel = record.personnel || [];
@@ -150,10 +152,7 @@
         async function updateData() {
             try {
                 await axios.put(API_URL, { dispatches, personnel, lastUpdated: new Date().toISOString() }, {
-                    headers: { 
-                        "X-Master-Key": MASTER_KEY,
-                        "Content-Type": "application/json"
-                    }
+                    headers: { "X-Master-Key": MASTER_KEY, "Content-Type": "application/json" }
                 });
                 renderAll();
             } catch (e) {
@@ -206,11 +205,7 @@
             const nameInput = document.getElementById('new-personnel-name');
             const name = nameInput.value.trim();
             if (!name) return;
-            
-            personnel.unshift({
-                id: Date.now().toString(),
-                name: name
-            });
+            personnel.unshift({ id: Date.now().toString(), name: name });
             await updateData();
             nameInput.value = '';
         }
@@ -226,7 +221,7 @@
             const type = document.getElementById('incident-type').value;
             const loc = document.getElementById('incident-location').value || "Unknown Location";
 
-            dispatches.unshift({
+            const newCall = {
                 id: Date.now().toString(),
                 time: new Date().toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'}),
                 type: type,
@@ -234,10 +229,37 @@
                 unit: "PENDING",
                 status: "DISPATCHED",
                 priority: "HIGH"
-            });
+            };
 
+            dispatches.unshift(newCall);
             await updateData();
+            
+            // 🔥 FD-STYLE DISPATCH ALARM
+            alarmAudio.currentTime = 0;
+            alarmAudio.play().catch(() => {
+                // Fallback tone if blocked
+                createFallbackSiren();
+            });
+            
             closeModal();
+        }
+
+        // Fallback Web Audio API siren tone
+        function createFallbackSiren() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.value = 0.3;
+            
+            oscillator.connect(gain).connect(audioCtx.destination);
+            oscillator.start();
+            
+            setTimeout(() => {
+                oscillator.stop();
+            }, 1200);
         }
 
         function closeCall(id) {
@@ -252,15 +274,11 @@
 
         let map;
         function initMap() {
-            map = L.map('map').setView([10.7202, 122.5621], 13); // Iloilo City approx
+            map = L.map('map').setView([10.7202, 122.5621], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
+                attribution: '&copy; OpenStreetMap'
             }).addTo(map);
-            
-            // Sample SAR marker
-            L.marker([10.7202, 122.5621]).addTo(map)
-                .bindPopup('Iloilo Command Center<br>🐅 Tigers Brigade HQ')
-                .openPopup();
+            L.marker([10.7202, 122.5621]).addTo(map).bindPopup('Iloilo Command Center').openPopup();
         }
 
         function switchPanel(n) {
@@ -268,11 +286,7 @@
             document.getElementById(`panel-${n}`).classList.remove('hidden');
             
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            const links = document.querySelectorAll('.nav-link');
-            if (n === 0) links[0].classList.add('active');
-            else if (n === 1) links[1].classList.add('active');
-            else if (n === 2) links[2].classList.add('active');
-            else if (n === 3) links[3].classList.add('active');
+            document.querySelectorAll('.nav-link')[n].classList.add('active');
             
             if (n === 3 && !map) initMap();
         }
