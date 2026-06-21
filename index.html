@@ -16,8 +16,12 @@
         .nav-link.active { background-color: #991b1b; border-left: 4px solid #f59e0b; }
         .live-dot { animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:0.3} }
-        .dispatch-entry { transition: all 0.3s; }
+        .dispatch-entry, .chat-message { transition: all 0.3s; }
         #map { height: 620px; width: 100%; }
+        .chat-container { height: 620px; }
+        .chat-feed { height: calc(100% - 70px); overflow-y: auto; scrollbar-width: thin; }
+        .chat-feed::-webkit-scrollbar { width: 6px; }
+        .chat-feed::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 3px; }
     </style>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen overflow-hidden">
@@ -51,6 +55,7 @@
                 <a href="#" onclick="switchPanel(1)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">👥 PERSONNEL</a>
                 <a href="#" onclick="switchPanel(2)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">🚨 LIVE DISPATCH</a>
                 <a href="#" onclick="switchPanel(3)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">🗺️ VIEW MAP</a>
+                <a href="#" onclick="switchPanel(4)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl text-sm">💬 GROUP CHAT</a>
             </nav>
         </div>
 
@@ -93,6 +98,30 @@
                 <h2 class="text-2xl font-bold mb-6">OPERATIONS MAP</h2>
                 <div id="map" class="rounded-3xl overflow-hidden border border-orange-500"></div>
             </div>
+
+            <!-- Chat -->
+            <div id="panel-4" class="hidden">
+                <div class="flex justify-between mb-6">
+                    <h2 class="text-2xl font-bold">GROUP CHAT • BRIGADE</h2>
+                    <div class="text-xs text-green-400 flex items-center gap-2">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        LIVE
+                    </div>
+                </div>
+                <div class="chat-container bg-zinc-900 rounded-3xl border border-orange-500/30 flex flex-col">
+                    <div id="chat-feed" class="chat-feed p-6 space-y-4 flex-1"></div>
+                    <div class="p-4 border-t border-zinc-700 flex gap-3">
+                        <input id="chat-input" 
+                               onkeypress="if(event.key === 'Enter') sendChatMessage()"
+                               placeholder="Type message... (Press Enter to send)" 
+                               class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-orange-500">
+                        <button onclick="sendChatMessage()" 
+                                class="bg-orange-500 hover:bg-orange-600 text-black font-bold px-8 rounded-2xl">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -125,8 +154,10 @@
 
         let dispatches = [];
         let personnel = [];
+        let messages = [];
         let audioContext;
         let map;
+        let lastMessageCount = 0;
 
         function initAudio() {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -156,8 +187,16 @@
                 const record = res.data.record || {};
                 dispatches = record.dispatches || [];
                 personnel = record.personnel || [];
+                messages = record.messages || [];
+                
                 document.getElementById('sync-status').textContent = "LIVE ✓";
                 renderAll();
+                
+                // New message notification
+                if (messages.length > lastMessageCount && document.getElementById('panel-4').classList.contains('hidden') === false) {
+                    // Optional subtle sound for new chat message
+                }
+                lastMessageCount = messages.length;
             } catch (e) {
                 document.getElementById('sync-status').textContent = "OFFLINE";
             }
@@ -165,7 +204,12 @@
 
         async function updateData() {
             try {
-                await axios.put(API_URL, { dispatches, personnel, lastUpdated: new Date().toISOString() }, {
+                await axios.put(API_URL, { 
+                    dispatches, 
+                    personnel, 
+                    messages,
+                    lastUpdated: new Date().toISOString() 
+                }, {
                     headers: { "X-Master-Key": MASTER_KEY, "Content-Type": "application/json" }
                 });
                 renderAll();
@@ -175,6 +219,7 @@
         function renderAll() {
             renderDispatchFeed();
             renderPersonnelList();
+            renderChatFeed();
         }
 
         function renderDispatchFeed() {
@@ -211,6 +256,23 @@
                     <button onclick="removePersonnel('${p.id}')" class="text-red-400 hover:text-red-500">REMOVE</button>
                 </div>
             `).join('') || '<p class="text-zinc-400">No personnel added yet.</p>';
+        }
+
+        function renderChatFeed() {
+            const container = document.getElementById('chat-feed');
+            if (messages.length === 0) {
+                container.innerHTML = `<div class="h-full flex items-center justify-center text-zinc-500">No messages yet. Say something...</div>`;
+                return;
+            }
+            container.innerHTML = messages.map(m => `
+                <div class="chat-message flex gap-3 ${m.isSelf ? 'justify-end' : ''}">
+                    <div class="${m.isSelf ? 'bg-orange-600 text-right' : 'bg-zinc-800'} rounded-3xl px-5 py-3 max-w-[75%]">
+                        <div class="text-xs text-orange-400 mb-1">${m.sender} • ${m.time}</div>
+                        <div>${m.text}</div>
+                    </div>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
         }
 
         async function addPersonnel() {
@@ -255,6 +317,24 @@
             }
         }
 
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const now = new Date();
+            messages.unshift({
+                id: Date.now().toString(),
+                sender: "You (MDT)", 
+                time: now.toLocaleTimeString('en-PH', {hour:'2-digit', minute:'2-digit'}),
+                text: text,
+                isSelf: true
+            });
+
+            input.value = '';
+            await updateData();
+        }
+
         function newDispatchCall() { 
             document.getElementById('new-dispatch-modal').classList.remove('hidden'); 
         }
@@ -277,6 +357,12 @@
             document.querySelectorAll('.nav-link')[n].classList.add('active');
             
             if (n === 3) initMap();
+            if (n === 4) {
+                setTimeout(() => {
+                    const feed = document.getElementById('chat-feed');
+                    if (feed) feed.scrollTop = feed.scrollHeight;
+                }, 100);
+            }
         }
 
         function updateClock() {
@@ -295,8 +381,8 @@
             setInterval(updateClock, 1000);
             initAudio();
             fetchData();
-            setInterval(fetchData, 1800);
+            setInterval(fetchData, 1500); // Faster sync for chat
         };
     </script>
 </body>
-</html>
+    </html>
