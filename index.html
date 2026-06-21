@@ -7,6 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
         body { font-family: 'Roboto Mono', monospace; }
@@ -14,6 +18,7 @@
         .live-dot { animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:0.3} }
         .dispatch-entry { transition: all 0.3s; }
+        #map { height: 600px; width: 100%; }
     </style>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen overflow-hidden">
@@ -22,8 +27,8 @@
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-4xl border-4 border-orange-500">🐅</div>
             <div>
-                <h1 class="text-2xl font-bold text-orange-400">ILOILO R6 TIGERS BRIGADE</h1>
-                <p class="text-xs text-red-200">SEARCH & RESCUE • <span class="text-green-400">LIVE SYNC</span></p>
+                <h1 class="text-2xl font-bold text-orange-400">ILOILO R6 TIGERS</h1>
+                <p class="text-xs text-red-200">SEARCH & RESCUE BRIGADE • <span class="text-green-400">LIVE SYNC</span></p>
             </div>
         </div>
         <div class="text-center font-mono">
@@ -44,8 +49,9 @@
         <div class="w-72 bg-zinc-900 border-r border-red-800 p-3 flex flex-col">
             <nav class="flex-1 space-y-1">
                 <a href="#" onclick="switchPanel(0)" class="nav-link active flex items-center gap-3 px-5 py-3 rounded-xl">📊 DASHBOARD</a>
-                <a href="#" onclick="switchPanel(2)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">🚨 LIVE DISPATCH</a>
                 <a href="#" onclick="switchPanel(1)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">👥 PERSONNEL</a>
+                <a href="#" onclick="switchPanel(2)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">🚨 LIVE DISPATCH</a>
+                <a href="#" onclick="switchPanel(3)" class="nav-link flex items-center gap-3 px-5 py-3 rounded-xl">🗺️ VIEW MAP</a>
             </nav>
         </div>
 
@@ -57,6 +63,22 @@
                     <h1 class="text-5xl font-bold text-orange-400 mb-4">Welcome to MDT</h1>
                     <p class="text-xl text-zinc-400">No active calls • All units standby</p>
                 </div>
+            </div>
+
+            <!-- PERSONNEL -->
+            <div id="panel-1" class="hidden">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><i class="fas fa-users"></i> PERSONNEL</h2>
+                
+                <div class="bg-zinc-900 p-6 rounded-3xl mb-6">
+                    <div class="flex gap-3">
+                        <input id="new-personnel-name" placeholder="Enter name (e.g. TR-07 Santos)" 
+                               class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-orange-500">
+                        <button onclick="addPersonnel()" 
+                                class="bg-orange-500 hover:bg-orange-600 text-black font-bold px-8 rounded-2xl">ADD</button>
+                    </div>
+                </div>
+                
+                <div id="personnel-list" class="space-y-3"></div>
             </div>
 
             <!-- LIVE DISPATCH -->
@@ -71,10 +93,10 @@
                 <div id="dispatch-feed" class="space-y-4 min-h-[400px]"></div>
             </div>
 
-            <!-- Personnel -->
-            <div id="panel-1" class="hidden">
-                <h2 class="text-2xl font-bold mb-6">Personnel Profiles</h2>
-                <p class="text-zinc-400">Team roster coming soon...</p>
+            <!-- MAP -->
+            <div id="panel-3" class="hidden">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-3"><i class="fas fa-map-marked-alt"></i> OPERATIONS MAP</h2>
+                <div id="map" class="rounded-3xl overflow-hidden border border-orange-500"></div>
             </div>
         </div>
     </div>
@@ -101,39 +123,47 @@
     </div>
 
     <script>
-        // ================== YOUR JSONBIN CREDENTIALS ==================
+        // ================== JSONBIN CONFIG ==================
         const BIN_ID = "6a36bc57f5f4af5e2914e1a3";
         const MASTER_KEY = "$2a$10$pedxS/u0iYwkNSqCta30R.iC6uYafEmeMR9br.X6X6e9MKPBNdrru";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
         let dispatches = [];
+        let personnel = [];
 
-        async function fetchDispatches() {
+        async function fetchData() {
             try {
                 const res = await axios.get(API_URL, {
                     headers: { "X-Master-Key": MASTER_KEY }
                 });
-                dispatches = res.data.record.dispatches || [];
+                const record = res.data.record || {};
+                dispatches = record.dispatches || [];
+                personnel = record.personnel || [];
                 document.getElementById('sync-status').textContent = "LIVE ✓";
-                renderDispatchFeed();
+                renderAll();
             } catch (e) {
                 console.error(e);
                 document.getElementById('sync-status').textContent = "OFFLINE";
             }
         }
 
-        async function updateDispatches() {
+        async function updateData() {
             try {
-                await axios.put(API_URL, { dispatches, lastUpdated: new Date().toISOString() }, {
+                await axios.put(API_URL, { dispatches, personnel, lastUpdated: new Date().toISOString() }, {
                     headers: { 
                         "X-Master-Key": MASTER_KEY,
                         "Content-Type": "application/json"
                     }
                 });
-                renderDispatchFeed();
+                renderAll();
             } catch (e) {
                 console.error("Update failed", e);
             }
+        }
+
+        function renderAll() {
+            renderDispatchFeed();
+            renderPersonnelList();
         }
 
         function renderDispatchFeed() {
@@ -144,18 +174,52 @@
             }
             container.innerHTML = dispatches.map(d => `
                 <div class="dispatch-entry bg-zinc-900 border border-red-800 rounded-3xl p-6 flex gap-6">
-                    <div class="text-center w-20">
+                    <div class="text-center w-24">
                         <div class="text-orange-400">${d.time}</div>
                         <div class="text-red-400 font-bold">${d.priority}</div>
                     </div>
                     <div class="flex-1">
                         <div class="font-bold">${d.type}</div>
                         <div class="text-zinc-400">${d.location}</div>
-                        <div class="text-sm mt-1">Unit: ${d.unit} • ${d.status}</div>
+                        <div class="text-sm mt-1">Unit: \( {d.unit} • <span class="text-green-400"> \){d.status}</span></div>
                     </div>
-                    <button onclick="closeCall('${d.id}')" class="self-start px-6 py-3 bg-red-700 hover:bg-red-600 rounded-2xl text-sm">CLOSE CALL</button>
+                    <button onclick="closeCall('${d.id}')" class="self-start px-6 py-3 bg-red-700 hover:bg-red-600 rounded-2xl text-sm">CLOSE</button>
                 </div>
             `).join('');
+        }
+
+        function renderPersonnelList() {
+            const container = document.getElementById('personnel-list');
+            container.innerHTML = personnel.map(p => `
+                <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-2xl">👤</div>
+                    <div class="flex-1">
+                        <div class="font-bold">${p.name}</div>
+                        <div class="text-xs text-green-400">ON DUTY</div>
+                    </div>
+                    <button onclick="removePersonnel('${p.id}')" class="text-red-400 hover:text-red-500">REMOVE</button>
+                </div>
+            `).join('') || '<p class="text-zinc-400">No personnel added yet.</p>';
+        }
+
+        async function addPersonnel() {
+            const nameInput = document.getElementById('new-personnel-name');
+            const name = nameInput.value.trim();
+            if (!name) return;
+            
+            personnel.unshift({
+                id: Date.now().toString(),
+                name: name
+            });
+            await updateData();
+            nameInput.value = '';
+        }
+
+        async function removePersonnel(id) {
+            if (confirm("Remove this personnel?")) {
+                personnel = personnel.filter(p => p.id !== id);
+                await updateData();
+            }
         }
 
         async function submitNewDispatch() {
@@ -172,25 +236,45 @@
                 priority: "HIGH"
             });
 
-            await updateDispatches();
+            await updateData();
             closeModal();
         }
 
         function closeCall(id) {
             if (confirm("Mark this call as resolved?")) {
                 dispatches = dispatches.filter(d => d.id !== id);
-                updateDispatches();
+                updateData();
             }
         }
 
         function newDispatchCall() { document.getElementById('new-dispatch-modal').classList.remove('hidden'); }
         function closeModal() { document.getElementById('new-dispatch-modal').classList.add('hidden'); }
 
+        let map;
+        function initMap() {
+            map = L.map('map').setView([10.7202, 122.5621], 13); // Iloilo City approx
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Sample SAR marker
+            L.marker([10.7202, 122.5621]).addTo(map)
+                .bindPopup('Iloilo Command Center<br>🐅 Tigers Brigade HQ')
+                .openPopup();
+        }
+
         function switchPanel(n) {
             document.querySelectorAll('#main-content > div').forEach(d => d.classList.add('hidden'));
             document.getElementById(`panel-${n}`).classList.remove('hidden');
+            
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.querySelectorAll('.nav-link')[n === 0 ? 0 : n === 2 ? 1 : 2].classList.add('active');
+            const links = document.querySelectorAll('.nav-link');
+            if (n === 0) links[0].classList.add('active');
+            else if (n === 1) links[1].classList.add('active');
+            else if (n === 2) links[2].classList.add('active');
+            else if (n === 3) links[3].classList.add('active');
+            
+            if (n === 3 && !map) initMap();
         }
 
         function updateClock() {
@@ -208,12 +292,8 @@
             updateClock();
             setInterval(updateClock, 1000);
             
-            // Start fresh (clear old data on first load)
-            dispatches = [];
-            updateDispatches();
-            
-            fetchDispatches();
-            setInterval(fetchDispatches, 2500); // Poll every 2.5 seconds
+            fetchData();
+            setInterval(fetchData, 2500);
         };
     </script>
 </body>
